@@ -134,7 +134,7 @@ public class SXXParalized {
                 .username("jboss")
                 .keyfile(System.getProperty("user.home") + "/.ssh/jboss_rsa");
         SXXParalized me = new SXXParalized(param);
-        me.setHosts(new String[]{"larm01syst", "larm02syst"});
+        me.setHosts(new String[]{"host1", "host"});
         me.setCommands(new String[]{
                     "ls -l",
                     "============",
