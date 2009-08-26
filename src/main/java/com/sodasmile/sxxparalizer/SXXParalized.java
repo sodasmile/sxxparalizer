@@ -132,7 +132,7 @@ public class SXXParalized {
     public static void main(String[] args) throws Exception {
         SXXParameters param = new SXXParameters()
                 .username("jboss")
-                .keyfile(System.getProperty("user.home") + "/.ssh/jboss_rsa");
+                .keyfile(System.getProperty("user.home") + "/.ssh/common_rsa");
         SXXParalized me = new SXXParalized(param);
         me.setHosts(new String[]{"host1", "host"});
         me.setCommands(new String[]{
