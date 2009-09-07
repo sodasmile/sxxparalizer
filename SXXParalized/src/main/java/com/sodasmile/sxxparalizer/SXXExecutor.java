@@ -21,6 +21,7 @@ import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -31,36 +32,43 @@ import java.util.logging.Logger;
  * a copy of apache ants
  * {@link org.apache.tools.ant.taskdefs.optional.ssh.SSHExcec} and
  * {@link org.apache.tools.ant.taskdefs.optional.ssh.SSHBase}.
- *
+ * <p/>
  * TODO: Implement proper logging, remove system.out
  *
  * @author anderssm
  */
 public class SXXExecutor {
 
-    /** milliseconds to wait between retries for checking if commands completed */
+    /**
+     * Milliseconds to wait between retries for checking if commands completed
+     */
     private static final int RETRY_INTERVAL = 500;
+
     private String host;
     private String knownHosts;
     private int port;
     private boolean failOnError;
     private boolean verbose;
     private SSHUserInfo userInfo;
-    /** milliseconds to wait for command to finish, 0 means forever */
+
+    /**
+     * milliseconds to wait for command to finish, 0 means forever
+     */
     private long maxwait;
-    /** for waiting for the command to finish */
-    private Thread thread = null;
-    /** Stores session for reuse between commands */
+
+    /**
+     * Stores session for reuse between commands
+     */
     private Session session;
 
     /**
      * Builder class to create new SXXExecutors.
      */
-    public static class Builder {
+    public static class SXXExecutorBuilder {
 
         private SXXParameters parameters;
 
-        public Builder(SXXParameters parameters) {
+        public SXXExecutorBuilder(final SXXParameters parameters) {
             this.parameters = parameters;
         }
 
@@ -69,12 +77,14 @@ public class SXXExecutor {
             return new SXXExecutor(parameters);
         }
     }
+
     /**
      * Constructor for SSHBase.
      * This initializizs the known hosts and sets the default port.
-     * @throws IllegalArgumentException on error
+     *
+     * @param parameters Parameters to initialize the executor with.
      */
-    private SXXExecutor(SXXParameters parameters) {
+    private SXXExecutor(final SXXParameters parameters) {
         userInfo = new SSHUserInfo();
         this.knownHosts = System.getProperty("user.home") + "/.ssh/known_hosts";
 
@@ -91,7 +101,7 @@ public class SXXExecutor {
         setTrust(parameters.trust());
     }
 
-    private void setKnownHostsIfSpecified(SXXParameters parameters) {
+    private void setKnownHostsIfSpecified(final SXXParameters parameters) {
         if (parameters.knownHosts() != null && !parameters.knownHosts().trim().equals("")) {
             setKnownhosts(parameters.knownHosts());
         }
@@ -99,10 +109,11 @@ public class SXXExecutor {
 
     /**
      * Open an ssh seession. Call this when done configuring executor, before calling sendCommand.
+     *
      * @return the opened session
      * @throws JSchException on error
      */
-    public void openSession() throws JSchException {
+    private void openSession() throws JSchException {
         checkValidConfiguration();
 
         JSch jsch = new JSch();
@@ -125,13 +136,22 @@ public class SXXExecutor {
 
     /**
      * Get the user information.
+     *
      * @return the user information
      */
-    protected SSHUserInfo getUserInfo() {
+    private SSHUserInfo getUserInfo() {
         return userInfo;
     }
 
-    public StringBuffer sendCommand(String cmd) throws JSchException, InterruptedException {
+    /**
+     * Sends command to server. Returns response as StringBuffer.
+     *
+     * @param cmd command to execute
+     * @return
+     * @throws JSchException
+     * @throws InterruptedException
+     */
+    public StringBuffer sendCommand(final String cmd) throws JSchException, InterruptedException {
         checkValidSession();
         checkValidCommand(cmd);
 
@@ -152,7 +172,9 @@ public class SXXExecutor {
         if (ec != 0) {
             String msg = "WARN: Remote command failed with exit status " + ec;
             log(msg);
-            // TODO: fail on error... 
+            if (failOnError) {
+                throw new RuntimeException("Remote command failed with status: " + ec);
+            }
         } else {
             log("DEBUG: Success");
         }
@@ -169,29 +191,29 @@ public class SXXExecutor {
         return new StringBuffer(result);
     }
 
+    /**
+     * Make sure to call this after last command to be sent to server. Closes connections and tidies up internal JSch stuff.
+     */
     public void disconnect() {
         session.disconnect();
     }
 
     private void waitForCommandToFinish(final ChannelExec channel) throws InterruptedException {
-        thread = new Thread("Command finished thread - " + host) {
+        Thread threadl = new Thread("Waiting for command finished-thread: " + host) {
 
             @Override
             public void run() {
                 while (!channel.isClosed()) {
-                    if (thread == null) {
-                        return;
-                    }
                     try {
                         sleep(RETRY_INTERVAL);
-                    } catch (Exception e) {
+                    } catch (InterruptedException e) {
                         // ignored
                     }
                 }
             }
         };
-        thread.start();
-        thread.join(maxwait);
+        threadl.start();
+        threadl.join(maxwait);
     }
 
     private void checkValidConfiguration() {
@@ -206,35 +228,36 @@ public class SXXExecutor {
         }
     }
 
-    private void checkValidCommand(String cmd) throws IllegalStateException {
-        if (cmd == null) {
+    private void checkValidCommand(final String cmd) {
+        if (cmd == null || cmd.trim().equals("")) {
             throw new IllegalStateException("Command or commandResource is required.");
         }
     }
 
-    private void checkValidSession() throws IllegalStateException {
+    private void checkValidSession() throws JSchException {
         if (session == null || !session.isConnected()) {
-            throw new IllegalStateException("No session open, make sure to call 'openSession' before sending first command");
+            openSession();
         }
     }
 
-    private void log(String message) {
+    private void log(final String message) {
         System.out.println(getHost() + ": " + message);
     }
 
     /* ===================== Bean properties ==============================*/
-    
+
     /**
      * Remote host, either DNS name or IP.
      *
-     * @param host  The new host value
+     * @param host The new host value
      */
-    private void setHost(String host) {
+    private void setHost(final String host) {
         this.host = host;
     }
 
     /**
      * Get the host.
+     *
      * @return the host
      */
     public String getHost() {
@@ -244,15 +267,17 @@ public class SXXExecutor {
     /**
      * Set the failonerror flag.
      * Default is true
+     *
      * @param failure if true throw a build exception when a failure occuries,
      *                otherwise just log the failure and continue
      */
-    private void setFailonerror(boolean failure) {
+    private void setFailonerror(final boolean failure) {
         failOnError = failure;
     }
 
     /**
      * Get the failonerror flag.
+     *
      * @return the failonerror flag
      */
     public boolean getFailonerror() {
@@ -261,17 +286,17 @@ public class SXXExecutor {
 
     /**
      * Set the verbose flag.
+     *
      * @param verbose if true output more verbose logging
-     * @since Ant 1.6.2
      */
-    private void setVerbose(boolean verbose) {
+    private void setVerbose(final boolean verbose) {
         this.verbose = verbose;
     }
 
     /**
      * Get the verbose flag.
+     *
      * @return the verbose flag
-     * @since Ant 1.6.2
      */
     public boolean getVerbose() {
         return verbose;
@@ -280,36 +305,36 @@ public class SXXExecutor {
     /**
      * Username known to remote host.
      *
-     * @param username  The new username value
+     * @param username The new username value
      */
-    private void setUsername(String username) {
+    private void setUsername(final String username) {
         userInfo.setName(username);
     }
 
     /**
      * Sets the password for the user.
      *
-     * @param password  The new password value
+     * @param password The new password value
      */
-    private void setPassword(String password) {
+    private void setPassword(final String password) {
         userInfo.setPassword(password);
     }
 
     /**
      * Sets the path to keyfile for the user.
      *
-     * @param keyfile  The new keyfile value
+     * @param keyfile The new keyfile value
      */
-    private void setKeyfile(String keyfile) {
+    private void setKeyfile(final String keyfile) {
         userInfo.setKeyfile(keyfile);
     }
 
     /**
      * Sets the passphrase for the users key.
      *
-     * @param passphrase  The new passphrase value
+     * @param passphrase The new passphrase value
      */
-    private void setPassphrase(String passphrase) {
+    private void setPassphrase(final String passphrase) {
         userInfo.setPassphrase(passphrase);
     }
 
@@ -321,7 +346,7 @@ public class SXXExecutor {
      *
      * @param knownHosts a path to the known hosts file.
      */
-    private void setKnownhosts(String knownHosts) {
+    private void setKnownhosts(final String knownHosts) {
         this.knownHosts = knownHosts;
     }
 
@@ -330,7 +355,7 @@ public class SXXExecutor {
      *
      * @param yesOrNo if true trust the identity of unknown hosts.
      */
-    private void setTrust(boolean yesOrNo) {
+    private void setTrust(final boolean yesOrNo) {
         userInfo.setTrust(yesOrNo);
     }
 
@@ -339,19 +364,20 @@ public class SXXExecutor {
      *
      * @param port port number of remote host.
      */
-    private void setPort(int port) {
+    private void setPort(final int port) {
         this.port = port;
     }
 
     /**
      * Get the port attribute.
+     *
      * @return the port
      */
     public int getPort() {
         return port;
     }
 
-    private void setTimeout(long timeout) {
+    private void setTimeout(final long timeout) {
         this.maxwait = timeout;
     }
 }

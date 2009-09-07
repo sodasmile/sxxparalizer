@@ -1,29 +1,38 @@
 package com.sodasmile.sxxparalizer;
 
+/**
+ * Class to test the execution of un-parallelized commands on one host.
+ */
 public class SXX {
 
+    /**
+     * Running un-parallelized 'test'.
+     * @param args - not used.
+     * @throws Exception everything that's thrown.
+     */
     public static void main(String[] args) throws Exception {
-        SXXExecutor me = new SXXExecutor.Builder(new SXXParameters()
-                .username("jboss")
-                .host("larm03syst")
+        SXXExecutor executor = new SXXExecutor.SXXExecutorBuilder(new SXXParameters()
+                .username("username")
+                .host("hostname")
                 // One of these:
-                .password("larmsyst")
+                .password("password")
                 //.keyfile("C:/Users/anderssm/.ssh/jboss_rsa");
                 .verbose(true)
                 //.trust(true); // no need when using known_hosts
                 .timeout(15000))
                 .build();
         
-        me.openSession();
+        executor.sendCommand("ls -l");
+        //executor.sendCommand("ls -l /root");
+        executor.sendCommand("touch rattata");
+        executor.sendCommand("ls -l");
+        executor.sendCommand("rm rattata");
+        executor.sendCommand("ls -l");
 
-        me.sendCommand("ls -l");
-        me.sendCommand("ls -l /root");
-        me.sendCommand("rm rattata");
-
-        me.disconnect();
+        executor.disconnect();
 
         try {
-            me.sendCommand("fisk");
+            executor.sendCommand("fisk");
             throw new RuntimeException("Expecting last command to fail, since session should be closed");
         } catch (IllegalStateException ise) {
             // Nada, expecting this exception.

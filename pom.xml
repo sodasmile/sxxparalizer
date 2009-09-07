@@ -10,5 +10,19 @@
         <module>SXXParalized</module>
         <module>SXXParalizerMavenPlugin</module>
     </modules>
+    <distributionManagement>
+        <repository>
+            <id>statnett</id>
+            <url>http://osloisdev5.statnett.no:8081/nexus/content/repositories/statnett/</url>
+        </repository>
+        <snapshotRepository>
+            <id>statnett-snapshots</id>
+            <url>http://osloisdev5.statnett.no:8081/nexus/content/repositories/statnett-snapshots/</url>
+        </snapshotRepository>
+        <site>
+            <id>statnett</id>
+            <url>scp://osloisdev5.statnett.no/var/lib/trac/LARM/htdocs/larm/</url>
+        </site>
+    </distributionManagement>
 </project>
 
