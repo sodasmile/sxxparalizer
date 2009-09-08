@@ -9,7 +9,7 @@
     <groupId>com.sodasmile.sxxparalizer</groupId>
     <artifactId>maven-sxxparalizer-plugin</artifactId>
     <packaging>maven-plugin</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0</version>
     <name>SXXParalizerMavenPlugin Maven Mojo</name>
     <url>http://maven.apache.org</url>
     <dependencies>
@@ -30,4 +30,5 @@
             <version>0.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
+    
 </project>

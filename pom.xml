@@ -10,19 +10,38 @@
         <module>SXXParalized</module>
         <module>SXXParalizerMavenPlugin</module>
     </modules>
-    <distributionManagement>
-        <repository>
-            <id>statnett</id>
-            <url>http://osloisdev5.statnett.no:8081/nexus/content/repositories/statnett/</url>
-        </repository>
-        <snapshotRepository>
-            <id>statnett-snapshots</id>
-            <url>http://osloisdev5.statnett.no:8081/nexus/content/repositories/statnett-snapshots/</url>
-        </snapshotRepository>
-        <site>
-            <id>statnett</id>
-            <url>scp://osloisdev5.statnett.no/var/lib/trac/LARM/htdocs/larm/</url>
-        </site>
-    </distributionManagement>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.5</source>
+                    <target>1.5</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+            <!-- To assemble zip file: mvn clean assembly:assembly -->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>project</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 </project>
 

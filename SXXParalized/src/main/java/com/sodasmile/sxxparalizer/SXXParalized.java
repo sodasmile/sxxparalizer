@@ -68,30 +68,34 @@ public class SXXParalized {
     /**
      * Runner to be able to run commands in parallel.
      */
-    private class ParallelCommandRunner extends Thread {
+    class ParallelCommandRunner extends Thread {
 
         private final SXXExecutor executor;
         private final CyclicBarrier barrier;
 
         /**
          * Runs commands on one hosts. Using barrier to synchronize with other running threads.
+         *
          * @param barrier
          * @param parameters
          */
         private ParallelCommandRunner(final CyclicBarrier barrier, final SXXParameters parameters) {
             this.barrier = barrier;
-            executor = new SXXExecutor.SXXExecutorBuilder(parameters).build(); 
+            executor = new SXXExecutor.SXXExecutorBuilder(parameters).build();
         }
 
         @Override
         public void run() {
             try {
                 for (String cmd : commands) {
+                    cmd = cmd.trim();
                     if (isBarrierCmd(cmd)) {
                         System.out.println(executor.getHost() + " roach barrier, waiting...");
                         barrier.await();
+                    } else if (isHostSpecificCommand(cmd) && !commandForCurrentHost(executor.getHost(), cmd)) {
+                        System.out.println(executor.getHost() + ": Skipping command not specific for this host: " + cmd);
                     } else {
-                        executor.sendCommand(cmd);
+                        executor.sendCommand(cleanupCommand(cmd));
                     }
                 }
             } catch (JSchException ex) {
@@ -105,10 +109,22 @@ public class SXXParalized {
                 executor.disconnect();
             }
         }
+    }
 
-        private boolean isBarrierCmd(final String cmd) {
-            return cmd.startsWith("===");
-        }
+    static String cleanupCommand(final String cmd) {
+        return cmd.replaceAll("^%.*: *", "");
+    }
+
+    static boolean commandForCurrentHost(final String host, final String cmd) {
+        return cmd.matches("%" + host + ": .*");
+    }
+
+    static boolean isHostSpecificCommand(final String cmd) {
+        return cmd.startsWith("%");
+    }
+
+    static boolean isBarrierCmd(final String cmd) {
+        return cmd.startsWith("===");
     }
 
     /**
